@@ -1,0 +1,48 @@
+# 项目的统一路径和基础参数。
+# 后续代码应从本配置读取可调参数，避免在各模块中重复写死路径和阈值。
+
+project:
+  name: "基于视觉的图书盘点系统"
+  random_seed: 42
+
+paths:
+  # 下列两个目录是当前已有的只读来源，不允许预处理脚本覆盖其中的文件。
+  source_images: "图像采集/图像采集"
+  source_catalog: "泰达西区库-馆藏清单-按册20260522-005/泰达西区库-馆藏清单-按册20260522-005.xlsx"
+
+  raw_data: "data/raw"
+  interim_data: "data/interim"
+  processed_data: "data/processed"
+  catalog_csv: "data/processed/catalog/catalog.csv"
+  model_weights: "models/weights"
+  outputs: "outputs"
+
+dataset:
+  # 按书架场景划分，不能对单张图片随机拆分，否则相邻图片会导致数据泄漏。
+  train_ratio: 0.70
+  val_ratio: 0.15
+  test_ratio: 0.15
+  minimum_image_count: 200
+  target_image_count: 230
+
+training:
+  model: "yolov8n-seg.pt"
+  image_size: 640
+  epochs: 100
+  batch: -1
+  device: 0
+  workers: 4
+  amp: true
+  patience: 20
+
+matching:
+  # 低于该阈值的结果进入人工确认，不进行强制书名匹配。
+  minimum_confidence: 0.72
+  candidate_count: 5
+
+deduplication:
+  # 配准时至少需要足够多的可靠特征匹配点，避免错误单应性变换。
+  minimum_feature_matches: 12
+  spatial_iou_threshold: 0.45
+  title_similarity_threshold: 0.75
+

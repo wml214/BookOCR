@@ -1,0 +1,57 @@
+# Python 运行缓存
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Python 虚拟环境
+.venv/
+venv/
+
+# 编辑器与操作系统生成文件
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# 原始数据与处理中间数据体积较大，不纳入代码仓库
+data/raw/*
+!data/raw/.gitkeep
+data/interim/*
+!data/interim/.gitkeep
+data/processed/*
+!data/processed/.gitkeep
+
+# 模型权重、训练过程和应用输出
+models/weights/*
+!models/weights/.gitkeep
+runs/
+outputs/*
+!outputs/predictions/
+!outputs/exports/
+!outputs/logs/
+!outputs/reports/
+outputs/predictions/*
+!outputs/predictions/.gitkeep
+outputs/exports/*
+!outputs/exports/.gitkeep
+outputs/logs/*
+!outputs/logs/.gitkeep
+outputs/reports/*
+!outputs/reports/.gitkeep
+
+# Streamlit 本地配置和用户上传文件
+.streamlit/secrets.toml
+uploads/
+
+# 原始实验材料
+图像采集/
+图像采集.zip
+泰达西区库-馆藏清单-按册20260522-005/
+*.pdf
+
+# 训练生成文件
+*.pt
+*.onnx
+runs/
