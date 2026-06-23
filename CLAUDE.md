@@ -98,9 +98,11 @@ OCR/
 - [x] 找到并识别馆藏 Excel 的核心字段。
 - [x] 建立项目目录骨架。
 - [x] 编写实施计划和项目状态说明。
+- [x] 实现 HEIC 批量转换脚本。
+- [x] 将 102 张 HEIC 成功转换为 4032×3024 JPEG，零失败。
+- [x] 实现馆藏 Excel 精简与书目合并脚本。
+- [x] 将 77,595 册馆藏合并为 59,078 条书目记录。
 - [ ] 安装并验证 Python、PyTorch CUDA、Ultralytics、PaddleOCR 和 Streamlit 环境。
-- [ ] 将馆藏 Excel 转换为精简 CSV。
-- [ ] 将 HEIC 图像批量转换为 JPEG。
 - [ ] 补采并筛选至至少 200 张有效图像。
 - [ ] 完成标注规范、标注及数据集划分。
 - [ ] 训练并评估 YOLOv8n-seg。
@@ -112,11 +114,30 @@ OCR/
 
 下一阶段按以下顺序实施：
 
-1. 创建虚拟环境并检查 CUDA、PyTorch 和显卡可用性。
-2. 编写馆藏 Excel 预处理脚本，提取题名等必要字段并生成精简 CSV。
-3. 编写 HEIC 转 JPEG 脚本，生成转换报告和失败清单。
-4. 生成数据清单，规划补采数量和场景编号。
+1. 创建项目虚拟环境并安装 `requirements.txt` 中的基础依赖。
+2. 检查 CUDA、PyTorch、Ultralytics、PaddleOCR 和 Streamlit 环境。
+3. 对现有 102 张 JPEG 进行场景、清晰度、重叠率和书脊数量统计。
+4. 规划补采数量和场景编号，补足至至少 200 张有效图像。
 5. 制定标注格式，并准备 Label Studio 导入配置。
+
+## 7.1 已生成的本地数据
+
+以下文件是可以通过脚本重新生成的本地中间产物，已由 `.gitignore` 排除，
+不应上传 GitHub：
+
+- JPEG 图像：`data/interim/images_jpg/`，共 102 张，统一为 4032×3024。
+- 转换清单：`data/interim/heic_conversion_manifest.csv`。
+- 精简馆藏：`data/processed/catalog/catalog.csv`，共 59,078 条书目记录。
+
+可重复执行的命令：
+
+```powershell
+python scripts/convert_heic.py
+python scripts/convert_catalog.py
+```
+
+HEIC 转换依赖 `pillow-heif`。这批原图使用网格结构，不能使用 FFmpeg 的
+默认视频流直接转换，否则只会得到 512×512 的局部图块。
 
 ## 8. 已知风险
 
@@ -133,4 +154,3 @@ OCR/
 - 技术路线或阈值发生变化时更新第 4 节，并说明原因。
 - 新增数据、模型和测试结果时记录准确数量与指标，不能使用模糊表述。
 - 不得把密码、密钥、个人隐私或大体积原始数据写入本文件。
-
