@@ -5,10 +5,12 @@ PyYAML>=6.0,<7
 # 图像与 HEIC 解码
 Pillow>=10.4,<13
 pillow-heif>=0.20,<2
+numpy>=2.0,<3
+opencv-python>=4.10,<5
 
 # 馆藏 Excel 流式读取
 openpyxl>=3.1,<4
 
 # 后续模型训练与 OCR 依赖将在对应阶段锁定版本，
-# 避免现在一次安装大型 CUDA 与 Paddle 软件包。
-
+# GPU 版 PyTorch 和 PaddlePaddle 需要使用各自官方 CUDA 软件源，
+# 具体安装命令见 docs/ENVIRONMENT.md，不能只依赖本文件安装。

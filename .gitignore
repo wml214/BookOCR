@@ -44,6 +44,9 @@ outputs/reports/*
 # 允许提交小型数据结构说明，但转换后的图片、馆藏 CSV 和清单仍保持本地。
 data/interim/images_jpg/
 data/interim/heic_conversion_manifest.csv
+data/interim/image_audit.csv
+data/interim/image_audit_summary.json
+data/interim/label_studio_tasks.json
 data/processed/catalog/catalog.csv
 
 # Streamlit 本地配置和用户上传文件

@@ -12,9 +12,14 @@ paths:
 
   raw_data: "data/raw"
   interim_data: "data/interim"
+  converted_images: "data/interim/images_jpg"
+  image_audit: "data/interim/image_audit.csv"
+  label_studio_tasks: "data/interim/label_studio_tasks.json"
   processed_data: "data/processed"
   catalog_csv: "data/processed/catalog/catalog.csv"
   model_weights: "models/weights"
+  obb_final_weights: "models/weights/book_spine_obb_final_200_best.pt"
+  seg_baseline_weights: "models/weights/book_spine_v3_100_best.pt"
   outputs: "outputs"
 
 dataset:
@@ -24,9 +29,11 @@ dataset:
   test_ratio: 0.15
   minimum_image_count: 200
   target_image_count: 230
+  annotation_class: "book_spine"
+  label_studio_config: "configs/label_studio/book_spine.xml"
 
 training:
-  model: "yolov8n-seg.pt"
+  model: "book_spine_obb_final_200_best.pt"
   image_size: 640
   epochs: 100
   batch: -1
@@ -34,6 +41,21 @@ training:
   workers: 4
   amp: true
   patience: 20
+
+detection:
+  # 最终 OBB 模型在 20 张 test 图上 conf=0.60 时，总计数准确率约 99.1%。
+  model_type: "obb"
+  confidence_threshold: 0.60
+  iou_threshold: 0.50
+  image_size: 640
+  device: 0
+  crop_padding_ratio: 0.03
+
+ocr:
+  engine: "paddleocr"
+  language: "ch"
+  min_line_confidence: 0.20
+  use_textline_orientation: true
 
 matching:
   # 低于该阈值的结果进入人工确认，不进行强制书名匹配。
@@ -45,4 +67,3 @@ deduplication:
   minimum_feature_matches: 12
   spatial_iou_threshold: 0.45
   title_similarity_threshold: 0.75
-

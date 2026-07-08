@@ -1,12 +1,15 @@
-"""将项目中的 HEIC 原图批量转换为高质量 JPEG。
+"""将项目中的原始图片批量整理为高质量 JPEG。
 
-本批 iPhone HEIC 使用了网格图像结构。FFmpeg 会把它识别为多个 512×512
+本项目最初采集的 iPhone HEIC 使用了网格图像结构。FFmpeg 会把它识别为多个 512×512
 图块，直接选择第一个视频流只会输出一个小图块。因此本脚本使用
 ``pillow-heif`` 读取并拼装完整主图，再由 Pillow 保存 JPEG。
 
+补拍图片可能已经是 JPG/JPEG/PNG。为了让后续审计、标注和训练流程只面对一种
+稳定格式，本脚本也会把这些常见图片重新转存为统一的高质量 JPEG。
+
 脚本具有以下安全特性：
 
-- 永不修改原始 HEIC；
+- 永不修改原始图片；
 - 默认不覆盖已存在且可正常读取的 JPEG；
 - 每张图转换后立即校验尺寸和文件完整性；
 - 生成 CSV 清单，记录成功、跳过或失败原因。
@@ -37,6 +40,16 @@ register_heif_opener()
 # 默认路径始终相对于项目根目录计算，避免 PyCharm 将工作目录设为
 # ``scripts`` 后错误地查找 ``scripts/图像采集`` 或把结果写入脚本目录。
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
+
+# 允许进入数据流水线的原始图片格式。HEIC/HEIF 用于手机原图，JPG/PNG 用于补拍或导出图。
+SUPPORTED_SOURCE_SUFFIXES = {".heic", ".heif", ".jpg", ".jpeg", ".png"}
+
+# 默认同时扫描旧的采集目录和新的 data/raw。data/raw 适合继续追加补拍数据，
+# 且已被 .gitignore 忽略，不会误提交到 GitHub。
+DEFAULT_SOURCE_DIRS = (
+    PROJECT_ROOT / "图像采集/图像采集",
+    PROJECT_ROOT / "data/raw",
+)
 
 
 @dataclass(frozen=True)
@@ -84,7 +97,7 @@ def convert_one(
     quality: int,
     overwrite: bool,
 ) -> ConversionResult:
-    """转换单个 HEIC，并返回详细结果。
+    """转换单张原始图片，并返回详细结果。
 
     ``ImageOps.exif_transpose`` 会根据 EXIF 方向把像素旋转到正确朝向，
     随后保存时即可去除容易造成不同软件显示不一致的方向依赖。
@@ -169,12 +182,22 @@ def write_manifest(results: list[ConversionResult], manifest_path: Path) -> None
 def parse_args() -> argparse.Namespace:
     """解析命令行参数。"""
 
-    parser = argparse.ArgumentParser(description="批量将 HEIC 转换为 JPEG。")
+    parser = argparse.ArgumentParser(description="批量将 HEIC/JPG/PNG 整理为 JPEG。")
     parser.add_argument(
         "--source-dir",
         type=Path,
-        default=PROJECT_ROOT / "图像采集/图像采集",
-        help="HEIC 原图目录。",
+        action="append",
+        default=None,
+        help=(
+            "原始图片目录，可重复传入多个。"
+            "不传时默认扫描 图像采集/图像采集 和 data/raw。"
+        ),
+    )
+    parser.add_argument(
+        "--recursive",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="是否递归扫描 source-dir 子目录，默认开启。",
     )
     parser.add_argument(
         "--output-dir",
@@ -204,24 +227,67 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
+def iter_source_files(source_dirs: list[Path], recursive: bool) -> list[Path]:
+    """收集所有可处理的原始图片路径。
+
+    这里故意只筛选文件后缀，不按文件名推断批次；这样后续继续补拍时，
+    只要把图片放进 ``data/raw`` 的任意子目录，再运行脚本即可进入流水线。
+    """
+
+    sources: list[Path] = []
+    for source_dir in source_dirs:
+        if not source_dir.is_dir():
+            print(f"跳过不存在的目录：{source_dir.resolve()}")
+            continue
+
+        candidates = source_dir.rglob("*") if recursive else source_dir.iterdir()
+        sources.extend(
+            path
+            for path in candidates
+            if path.is_file() and path.suffix.lower() in SUPPORTED_SOURCE_SUFFIXES
+        )
+
+    # 用 resolve 后的字符串去重，避免同一目录被重复传入时重复处理同一张图。
+    unique_sources = {str(path.resolve()): path for path in sources}
+    return sorted(unique_sources.values(), key=lambda path: str(path.resolve()).lower())
+
+
+def build_output_names(sources: list[Path]) -> dict[Path, str]:
+    """为每张源图生成输出文件名。
+
+    大多数情况下沿用源文件名的 stem，例如 ``IMG_7832.HEIC`` 输出为
+    ``IMG_7832.jpg``。如果不同目录中出现同名源图，则追加短哈希，避免后处理
+    结果互相覆盖。
+    """
+
+    stem_counts: dict[str, int] = {}
+    for source in sources:
+        stem_counts[source.stem.lower()] = stem_counts.get(source.stem.lower(), 0) + 1
+
+    output_names: dict[Path, str] = {}
+    for source in sources:
+        if stem_counts[source.stem.lower()] == 1:
+            output_names[source] = f"{source.stem}.jpg"
+        else:
+            short_hash = sha256_file(source)[:8]
+            output_names[source] = f"{source.stem}_{short_hash}.jpg"
+    return output_names
+
+
 def main() -> None:
-    """批量转换所有 HEIC，生成清单并在失败时返回非零退出码。"""
+    """批量转换所有原始图片，生成清单并在失败时返回非零退出码。"""
 
     args = parse_args()
-    if not args.source_dir.is_dir():
-        raise FileNotFoundError(f"找不到 HEIC 目录：{args.source_dir.resolve()}")
-
-    sources = sorted(
-        path
-        for path in args.source_dir.iterdir()
-        if path.is_file() and path.suffix.lower() in {".heic", ".heif"}
-    )
+    source_dirs = args.source_dir or list(DEFAULT_SOURCE_DIRS)
+    sources = iter_source_files(source_dirs, args.recursive)
     if not sources:
-        raise RuntimeError(f"目录中没有 HEIC 文件：{args.source_dir.resolve()}")
+        readable_dirs = "、".join(str(path.resolve()) for path in source_dirs)
+        raise RuntimeError(f"目录中没有可处理图片：{readable_dirs}")
 
+    output_names = build_output_names(sources)
     results: list[ConversionResult] = []
     for index, source in enumerate(sources, start=1):
-        destination = args.output_dir / f"{source.stem}.jpg"
+        destination = args.output_dir / output_names[source]
         result = convert_one(source, destination, args.quality, args.overwrite)
         results.append(result)
         print(
