@@ -1,0 +1,13 @@
+<!--
+  书脊实例分割标注界面。
+
+  每个可见的实体书脊应创建一个独立多边形，并在该区域填写书名。
+  “待查证”仅用于暂时无法从书脊或馆藏目录确认题名的情况。
+-->
+<View>
+  <Image name="image" value="$image" zoom="true" rotateControl="true"/>
+
+  <PolygonLabels name="spine_polygon" toName="image" strokeWidth="2">
+    <Label value="book_spine" background="#2F80ED"/>
+  </PolygonLabels>
+</View>

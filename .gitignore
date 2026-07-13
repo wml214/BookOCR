@@ -63,3 +63,10 @@ uploads/
 *.pt
 *.onnx
 runs/
+
+# 本地调试日志
+debug.log
+
+# HyperFrames 视频工程与渲染产物不提交到 GitHub。
+# 如需提交演示视频，建议放入最终课程压缩包或 GitHub Release。
+video/book_inventory_demo/

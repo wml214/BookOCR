@@ -1,0 +1,9 @@
+# YOLOv8-seg 书脊分割启动数据集
+# 本文件由 scripts/export_label_studio_to_yolo.py 自动生成。
+path: D:/IT/OCR/data/processed/dataset/bootstrap_v1
+train: images/train
+val: images/val
+test: images/test
+
+names:
+  0: book_spine

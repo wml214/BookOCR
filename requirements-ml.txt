@@ -1,0 +1,12 @@
+# 深度学习与 OCR 业务依赖。
+#
+# 安装本文件前必须先按 docs/ENVIRONMENT.md 安装 CUDA 版 PyTorch，
+# 否则 Ultralytics 可能自动选择不符合项目要求的 PyTorch 构建。
+
+ultralytics>=8.4,<9
+
+# PaddleOCR 使用 CPU，避免与 PyTorch CUDA 在同一 Windows 进程中发生
+# cuDNN DLL 版本冲突。YOLO 仍使用 RTX 4060 GPU。
+paddlepaddle==3.2.2
+paddleocr>=3.7,<4
+
